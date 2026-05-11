@@ -1,0 +1,28 @@
+# Editor and OS scratch
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local kubeconfig dumps (if you ever export one to the repo root)
+kubeconfig
+kubeconfig.yaml
+
+# Helm packaging artifacts (`helm package` output)
+*.tgz
+**/charts/*.tgz
+
+# Logs
+*.log
+
+# Local environment overrides / secrets
+.env
+.env.local
+.env.*.local
+
+# Misc temp dirs
+tmp/
+.tmp/
