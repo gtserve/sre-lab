@@ -1,0 +1,46 @@
+# ------------------------------------------------------------------------------
+# Bootstrap Application that turns the repo into the cluster's source
+# of truth (App-of-Apps pattern).
+# ------------------------------------------------------------------------------
+# Apply once, by hand, after ArgoCD is installed:
+#   kubectl apply -f platform/argocd/root-app.yaml
+#
+# This Application watches `apps/` in this repo. Every YAML file in
+# `apps/` is expected to define a child ArgoCD Application. ArgoCD
+# reconciles each child, which in turn reconciles its workload.
+# ------------------------------------------------------------------------------
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+  # Cascade deletion of child Applications when root-app is deleted.
+  # Without this, deleting root-app orphans the children in-cluster.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/gtserve/sre-lab.git
+    # `HEAD` follows the default branch (main). Pin to a tag once the
+    # lab stabilises if you want deterministic rollbacks.
+    targetRevision: HEAD
+    # Watch every YAML in apps/, recursively. Each file is expected
+    # to define a child Application.
+    path: apps
+    directory:
+      recurse: true
+
+  destination:
+    # ArgoCD references its own cluster as kubernetes.default.svc.
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      # selfHeal: revert manual drift in the cluster back to Git.
+      selfHeal: true
+      # prune: delete resources that no longer exist in Git.
+      prune: true

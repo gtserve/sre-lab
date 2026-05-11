@@ -1,0 +1,47 @@
+# ------------------------------------------------------------------------------
+# Child Application that deploys Online Boutique via the vendored
+# upstream Helm chart at workloads/online-boutique/.
+# ------------------------------------------------------------------------------
+# Discovered by root-app (which watches apps/). On apply, ArgoCD:
+#   1) clones this repo at HEAD,
+#   2) runs `helm template` on workloads/online-boutique with both
+#      values.yaml (upstream defaults) and values-lab.yaml (our
+#      overrides) as the value sources,
+#   3) applies the rendered manifests into the `online-boutique`
+#      namespace, creating that namespace if it doesn't exist.
+# ------------------------------------------------------------------------------
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: online-boutique
+  namespace: argocd
+  # Cascade-delete the workload when this Application is removed.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/gtserve/sre-lab.git
+    targetRevision: HEAD
+    path: workloads/online-boutique
+    helm:
+      # Value files are merged left-to-right; later files win, so
+      # values-lab.yaml overrides upstream defaults.
+      valueFiles:
+        - values.yaml
+        - values-lab.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: online-boutique
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      # Create the `online-boutique` namespace if missing — it is not
+      # declared in the chart templates, only in the destination.
+      - CreateNamespace=true
