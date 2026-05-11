@@ -14,6 +14,12 @@ SHELL       	:= /usr/bin/env bash
 CLUSTER_NAME ?= atlas
 KIND_CONFIG  ?= cluster/kind-config.yaml
 
+# Background ArgoCD UI port-forward — PID + log files live in /tmp so
+# they don't litter the repo and don't need .gitignore entries.
+ARGOCD_UI_PORT ?= 8081
+ARGOCD_UI_PID  := /tmp/argocd-ui.pid
+ARGOCD_UI_LOG  := /tmp/argocd-ui.log
+
 .PHONY: help cluster-up cluster-down cluster-status
 
 help: ## Show available targets
@@ -53,3 +59,34 @@ argocd-ui: ## Port-forward the ArgoCD UI to https://localhost:8081
 	@echo "==> ArgoCD UI: https://localhost:8081 (user: admin)"
 	@echo "==> Get password in another terminal: make argocd-password"
 	kubectl -n argocd port-forward svc/argocd-server 8081:443
+
+.PHONY: argocd-ui-bg argocd-ui-stop
+
+argocd-ui-bg: ## Port-forward the ArgoCD UI in the background
+	@if [ -f $(ARGOCD_UI_PID) ] \
+	    && kill -0 $$(cat $(ARGOCD_UI_PID)) 2>/dev/null; then \
+	  echo "ArgoCD UI already running (PID $$(cat $(ARGOCD_UI_PID)))"; \
+	else \
+	  nohup kubectl -n argocd port-forward svc/argocd-server \
+	    $(ARGOCD_UI_PORT):443 > $(ARGOCD_UI_LOG) 2>&1 & \
+	    echo $$! > $(ARGOCD_UI_PID); \
+	  sleep 1; \
+	  echo "==> ArgoCD UI: https://localhost:$(ARGOCD_UI_PORT)"; \
+	  echo "==> User: admin   Password: make argocd-password"; \
+	  echo "==> PID:  $(ARGOCD_UI_PID)"; \
+	  echo "==> Log:  $(ARGOCD_UI_LOG)"; \
+	  echo "==> Stop: make argocd-ui-stop"; \
+	fi
+
+argocd-ui-stop: ## Stop the background ArgoCD UI port-forward
+	@if [ ! -f $(ARGOCD_UI_PID) ]; then \
+	  echo "No PID file at $(ARGOCD_UI_PID); nothing to stop."; \
+	else \
+	  PID=$$(cat $(ARGOCD_UI_PID)); \
+	  if kill -0 $$PID 2>/dev/null; then \
+	    kill $$PID && echo "Stopped ArgoCD UI (PID $$PID)"; \
+	  else \
+	    echo "PID $$PID not running; removing stale PID file."; \
+	  fi; \
+	  rm -f $(ARGOCD_UI_PID); \
+	fi
