@@ -1,0 +1,15 @@
+# ------------------------------------------------------------------------------
+# Lab-specific overrides for the Online Boutique Helm chart.
+# ------------------------------------------------------------------------------
+# Loaded AFTER upstream values.yaml so keys here win. Upstream values
+# is left untouched so chart-version bumps produce clean diffs.
+#
+# Phase 0 scope: just the minimum to deploy on kind. Later phases will
+# add observability collector overrides, security tightening, etc.
+# ------------------------------------------------------------------------------
+
+frontend:
+  # Kind has no LoadBalancer controller; the upstream default would
+  # create a Service stuck in `Pending` External IP forever. Disable
+  # it here and reach the frontend via `kubectl port-forward`.
+  externalService: false
