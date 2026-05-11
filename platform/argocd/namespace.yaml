@@ -1,0 +1,16 @@
+# ------------------------------------------------------------------------------
+# Dedicated namespace for ArgoCD, the GitOps engine.
+# ------------------------------------------------------------------------------
+# ArgoCD's upstream install.yaml assumes the namespace already exists;
+# creating it explicitly keeps the bootstrap declarative.
+# ------------------------------------------------------------------------------
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    name: argocd
+    # Marks this namespace as part of the platform layer (vs apps/).
+    # Useful later for label-based selectors and policies.
+    sre-lab.io/layer: platform

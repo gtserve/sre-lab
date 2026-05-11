@@ -1,0 +1,46 @@
+# ------------------------------------------------------------------------------
+# kind cluster definition for the SRE Lab.
+# ------------------------------------------------------------------------------
+# 1 control-plane + 3 workers (per architecture plan §5).
+# Three workers enable scheduling diversity, realistic PodDisruption-
+# Budget testing, and node-level chaos experiments.
+#
+# The control-plane node is labeled "ingress-ready=true" and exposes
+# host ports 8080/8443 so an in-cluster ingress controller (added in
+# a later phase) can be reached at http://localhost:8080.
+# ------------------------------------------------------------------------------
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+
+name: atlas
+
+# kindest/node tag pins the Kubernetes version so the cluster is
+# reproducible across laptops. Bump deliberately, not opportunistically.
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.31.2
+    # Label the control-plane node so a future ingress controller can
+    # target it via a nodeSelector.
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    # Forward host ports to the control-plane so services exposed via
+    # NodePort or Ingress are reachable from the laptop at
+    # http://localhost:8080 / https://localhost:8443.
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 8080
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 8443
+        protocol: TCP
+  - role: worker
+    image: kindest/node:v1.31.2
+  - role: worker
+    image: kindest/node:v1.31.2
+  - role: worker
+    image: kindest/node:v1.31.2

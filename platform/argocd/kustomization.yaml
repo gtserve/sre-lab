@@ -1,0 +1,24 @@
+# ------------------------------------------------------------------------------
+# Kustomize entry point for the ArgoCD install (pinned to v2.13.2).
+# ------------------------------------------------------------------------------
+# Pulls upstream ArgoCD install manifests and our local resources into
+# a single apply set.
+#
+# Usage: `kubectl apply -k platform/argocd` (or `make argocd-install`).
+#
+# Version bumps are deliberate: change the tag in the URL below, review
+# upstream release notes, then commit.
+# ------------------------------------------------------------------------------
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# All namespaced resources rendered by this kustomization land in the
+# `argocd` namespace. Cluster-scoped resources are unaffected.
+namespace: argocd
+
+# Order matters only for readability: local resources first, upstream
+# last. Kustomize merges them into a single apply set.
+resources:
+  - namespace.yaml
+  - https://raw.githubusercontent.com/argoproj/argo-cd/v2.13.2/manifests/install.yaml
